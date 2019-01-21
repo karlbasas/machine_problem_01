@@ -15,7 +15,7 @@ http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smt
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
     <http:listener-config name="machineproblem01-httpListenerConfig" host="0.0.0.0" port="${http.port}" doc:name="HTTP Listener Configuration"/>
     <apikit:config name="machineproblem01-config" raml="machineproblem01.raml" consoleEnabled="false" doc:name="Router"/>
-    <smtp:connector name="smtpConnector" doc:name="SMTP" validateConnections="false"/>
+
     <!-- smtp:connector name="SMTP_Config" validateConnections="false" doc:name="SMTP" contentType="application/json" fromAddress="f4muletest@gmail.com" dynamicNotification="true" subject="test"/-->
     <context:property-placeholder location="dev.properties"/>
     <smtp:gmail-connector name="Gmail" validateConnections="true" doc:name="Gmail"/>
@@ -29,10 +29,10 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
         <apikit:console config-ref="machineproblem01-config" doc:name="APIkit Console"/>
     </flow>
     <flow name="get:/getUsers:machineproblem01-config">
-        <flow-ref name="implementation" doc:name="implementation"/>
+        <flow-ref name="implementationFlow" doc:name="implementationFlow"/>
     </flow>
     <flow name="get:/getUser/{userId}:machineproblem01-config">
-        <flow-ref name="implementation" doc:name="implementation"/>
+        <flow-ref name="implementationFlow" doc:name="implementationFlow"/>
     </flow>
     <apikit:mapping-exception-strategy name="machineproblem01-apiKitGlobalExceptionMapping">
         <apikit:mapping statusCode="404">
@@ -61,20 +61,20 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
             <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload"/>
         </apikit:mapping>
     </apikit:mapping-exception-strategy>
- 	<flow name="schedulemail">
+ 	<flow name="scheduleMailFlow">
 		<poll doc:name="Poll">
 			<schedulers:cron-scheduler expression="0 10 0 * * ? *"/>
-			<expression-transformer expression="#[groovy:if(muleContext.registry.lookupFlowConstruct('processmail').isStopped()){muleContext.registry.lookupFlowConstruct('processmail').start()}]" doc:name="Start processmail"/>
+			<expression-transformer expression="#[groovy:if(muleContext.registry.lookupFlowConstruct('processMailFlow').isStopped()){muleContext.registry.lookupFlowConstruct('processMailFlow').start()}]" doc:name="Start processMailFlow"/>
      	</poll>
         <logger message="#['Polling mailer']" level="INFO" doc:name="Logger"/>
 
  	</flow>
-	<flow name="processmail" initialState="stopped">
+	<flow name="processMailFlow" initialState="stopped">
         <file:inbound-endpoint path="src/main/resources/input" moveToDirectory="src/main/resources/output"  responseTimeout="10000" doc:name="Read from File"/>
         <file:file-to-string-transformer doc:name="File to String"/>
         <logger message="#['Email': payload]" level="INFO" doc:name="Logger"/>
         <set-attachment attachmentName="payload.csv" value="#[payload]" contentType="text/csv" doc:name="Attachment"/>
         <smtp:outbound-endpoint host="${smtp.host}" port="${smtp.port}" user="${smtp.user}" password="${smtp.pass}" connector-ref="Gmail" to="${email.to}" from="${smtp.user}" subject="[KB] User Details" responseTimeout="60000"  doc:name="SMTP"/>
-		<expression-transformer expression="#[groovy:if(muleContext.registry.lookupFlowConstruct('processmail') != null){muleContext.registry.lookupFlowConstruct('processmail').stop()}]" doc:name="Stop processmail" returnSourceIfNull="true"/>
+		<expression-transformer expression="#[groovy:if(muleContext.registry.lookupFlowConstruct('processMailFlow') != null){muleContext.registry.lookupFlowConstruct('processMailFlow').stop()}]" doc:name="Stop processMailFlow" returnSourceIfNull="true"/>
 	</flow>
 </mule>

@@ -25,14 +25,14 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
     <db:mysql-config name="MySQL_Configuration" host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.database}" doc:name="MySQL Configuration"/>
     <file:connector name="File" autoDelete="true" outputAppend="true" streaming="true" validateConnections="true" doc:name="File"/>
-    <flow name="implementation">
+    <flow name="implementationFlow">
         <validation:is-true message="Unauthorized" expression="#[message.inboundProperties.'Requester-ID' == &quot;j32io33ise4k2qq1&quot;]" doc:name="Validate Token"/>
-        <flow-ref name="processrecord" doc:name="Process Records"/>
+        <flow-ref name="processRecordFlow" doc:name="processRecordFlow"/>
         <validation:is-not-empty message="Payload is empty" value="#[payload]" doc:name="Validate Records"/>
-        <flow-ref name="writetofile" doc:name="Write to File"/>
-        <flow-ref name="output" doc:name="Output"/>
+        <flow-ref name="writeToFileFlow" doc:name="writeToFileFlow"/>
+        <flow-ref name="outputFlow" doc:name="outputFlow"/>
     </flow>
-    <flow name="output">
+    <flow name="outputFlow">
         <choice doc:name="Choice">
             <when expression="#[flowVars.userId == null]">
                 <dw:transform-message doc:name="Transform to JSON List" metadata:id="45f6d27f-c6f4-4020-bcdb-5ecc4a28068b">
@@ -71,7 +71,7 @@ payload map {
         </choice>
         <logger message="#['After Transform:' + payload]" level="INFO" doc:name="Logger"/>
     </flow>
-    <flow name="processrecord">
+    <flow name="processRecordFlow">
         <choice doc:name="Choice">
             <when expression="#[flowVars.userId == null]">
                 <db:select config-ref="MySQL_Configuration" doc:name="Get All Users">
@@ -86,7 +86,7 @@ payload map {
         </choice>
         <logger message="#['DB Data:' + payload]" level="INFO" doc:name="Logger"/>
     </flow>
-    <flow name="writetofile">
+    <flow name="writeToFileFlow">
         <async doc:name="Async">
             <dw:transform-message doc:name="Transform to CSV">
                 <dw:input-payload doc:sample="sample_data\list_map_1.dwl"/>

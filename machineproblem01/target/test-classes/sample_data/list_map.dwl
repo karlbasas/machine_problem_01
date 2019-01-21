@@ -1,0 +1,10 @@
+%dw 1.0
+%output application/java
+---
+[{
+	Birthday: |2003-10-01|,
+	FullName: "????",
+	Gender: "????",
+	Username: "????",
+	dateRegistered: "????"
+}]

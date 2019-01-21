@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <configuration defaultExceptionStrategy-ref="Choice_Exception_Strategy" doc:name="Configuration">
+        <http:config useTransportForUris="false"/>
+    </configuration>
+
+	<choice-exception-strategy name="Choice_Exception_Strategy" >
+        <catch-exception-strategy when="#[exception.cause.message == &quot;Unauthorized&quot;]" doc:name="Unauthorized">
+            <set-property propertyName="http.status" value="#[401]" doc:name="401"/>
+            <set-payload value="{ &quot;message&quot;: &quot;unauthorized&quot;, &quot;errorCode&quot;: 401 }" doc:name="Set Payload"/>
+            <logger level="INFO" doc:name="Logger" message="#[exception.cause.message]"/>
+        </catch-exception-strategy>	    
+        <catch-exception-strategy when="#[exception.cause.message == &quot;Payload is empty&quot;]" doc:name="No records">
+            <set-property propertyName="http.status" value="#[404]" doc:name="404"/>
+            <set-payload value="{ &quot;message&quot;: &quot;user not found&quot;, &quot;errorCode&quot;: 404 }" doc:name="Set Payload"/>
+            <logger level="INFO" doc:name="Logger" message="#[exception.cause.message]"/>
+        </catch-exception-strategy>
+        <catch-exception-strategy doc:name="Default">
+            <set-property propertyName="http.status" value="#[500]" doc:name="500"/>
+            <set-payload value="{ &quot;message&quot;: &quot;system error&quot;, &quot;errorCode&quot;: 500 }" doc:name="Set Payload"/>
+            <logger level="INFO" doc:name="Logger" message="#[exception.cause.message]"/>
+        </catch-exception-strategy>
+	</choice-exception-strategy>
+</mule>

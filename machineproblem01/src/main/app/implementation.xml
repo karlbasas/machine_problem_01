@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp"
+	xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
+    <db:mysql-config name="MySQL_Configuration" host="${db.host}" port="${db.port}" user="${db.user}" password="${db.password}" database="${db.database}" doc:name="MySQL Configuration"/>
+    <file:connector name="File" autoDelete="true" outputAppend="true" streaming="true" validateConnections="true" doc:name="File"/>
+    <flow name="implementation">
+        <validation:is-true message="Unauthorized" expression="#[message.inboundProperties.'Requester-ID' == &quot;j32io33ise4k2qq1&quot;]" doc:name="Validate Token"/>
+        <flow-ref name="processrecord" doc:name="Process Records"/>
+        <validation:is-not-empty message="Payload is empty" value="#[payload]" doc:name="Validate Records"/>
+        <flow-ref name="writetofile" doc:name="Write to File"/>
+        <flow-ref name="output" doc:name="Output"/>
+    </flow>
+    <flow name="output">
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.userId == null]">
+                <dw:transform-message doc:name="Transform to JSON List" metadata:id="45f6d27f-c6f4-4020-bcdb-5ecc4a28068b">
+                    <dw:input-payload doc:sample="sample_data\list_map_3.dwl"/>
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+Users: payload map {
+	username: $.Username,
+	fullname: $.FullName,
+	age: (now.year - $.Birthday.year - 1) as :number
+		when (($.Birthday.month > now.month) or ($.Birthday.month == now.month and $.Birthday.day > now.day))
+		otherwise (now.year - $.Birthday.year) as :number,
+	gender: $.Gender,
+	dateRegistered: $.dateRegistered
+}]]></dw:set-payload>
+                </dw:transform-message>
+            </when>
+            <otherwise>
+                <dw:transform-message doc:name="Transform to JSON" metadata:id="93329ce5-b4d2-421c-87d1-0eefbf2e5a13">
+                    <dw:input-payload doc:sample="sample_data\list_map_2.dwl"/>
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload map {
+	username: $.Username,
+	fullname: $.FullName,
+	age: (now.year - $.Birthday.year - 1) as :number
+		when (($.Birthday.month > now.month) or ($.Birthday.month == now.month and $.Birthday.day > now.day))
+		otherwise (now.year - $.Birthday.year) as :number,
+	gender: $.Gender,
+	dateRegistered: $.dateRegistered
+}]]></dw:set-payload>
+                </dw:transform-message>
+            </otherwise>
+        </choice>
+        <logger message="#['After Transform:' + payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="processrecord">
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.userId == null]">
+                <db:select config-ref="MySQL_Configuration" doc:name="Get All Users">
+                    <db:parameterized-query><![CDATA[SELECT USD.Username, USD.FullName, USD.Birthday, USD.Gender, DATE_FORMAT(USD.dateRegistered, '%Y-%m-%d') AS dateRegistered FROM Account AS ACT, UserDetails AS USD WHERE ACT.userId = USD.userId AND ACT.active = true]]></db:parameterized-query>
+                </db:select>
+            </when>
+            <otherwise>
+                <db:select config-ref="MySQL_Configuration" doc:name="Get Specific User">
+                    <db:parameterized-query><![CDATA[SELECT USD.Username, USD.FullName, USD.Birthday, USD.Gender, DATE_FORMAT(USD.dateRegistered, '%Y-%m-%d') AS dateRegistered FROM Account AS ACT, UserDetails AS USD WHERE ACT.userId = USD.userId AND ACT.active = true AND #[flowVars.userId] = USD.userId]]></db:parameterized-query>
+                </db:select>
+            </otherwise>
+        </choice>
+        <logger message="#['DB Data:' + payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="writetofile">
+        <async doc:name="Async">
+            <dw:transform-message doc:name="Transform to CSV">
+                <dw:input-payload doc:sample="sample_data\list_map_1.dwl"/>
+                <dw:set-payload><![CDATA[%dw 1.0
+%output application/csv header=false
+---
+payload map {
+	username: $.Username,
+	fullname: $.FullName,
+	age: (now.year - $.Birthday.year - 1) as :number
+		when (($.Birthday.month > now.month) or ($.Birthday.month == now.month and $.Birthday.day > now.day))
+		otherwise (now.year - $.Birthday.year) as :number,
+	gender: $.Gender,
+	dateRegistered: $.dateRegistered
+}]]></dw:set-payload>
+            </dw:transform-message>
+            <file:outbound-endpoint path="src/main/resources/input" outputPattern="payload.csv" connector-ref="File" responseTimeout="10000" doc:name="File"/>
+            <logger level="INFO" doc:name="Logger" message="#['CSV output:' + payload]"/>
+        </async>
+    </flow>
+</mule>

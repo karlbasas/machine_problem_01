@@ -1,0 +1,67 @@
+#%RAML 1.0
+version: v1
+baseUri: https://anypoint.mulesoft.com/mocking/api/v1/links/7560d2c3-c9e3-489c-92f4-0d81162a8f8b/ # 
+title: MachineProblem01
+
+types:
+  Account: !include datatypes/account.raml
+
+/getUser:
+  /{userId}:
+    get:
+      description: Retrieves info of specified active user
+      headers:
+        Requester-ID:
+          description: Security code
+          required: true
+      responses:
+        200:
+          description: Returns an Account object in JSON
+          body:
+            application/json:
+              type: Account
+              example: !include examples/accountExample.raml
+        404:
+          body:
+            application/json:
+              example: {
+              "message": "user not found",
+              "errorCode": 404
+            }
+        500:
+          body:
+            application/json:
+              example: {
+              "message": "system error",
+              "errorCode": 500
+            }
+
+/getUsers:
+  get:
+    description: Retrieves info of all active users
+    headers:
+      Requester-ID:
+        description: Security code
+        required: true
+    responses:
+      200:
+        description: Returns an array of Account objects in JSON
+        body:
+          application/json:
+            type: Account[]
+            example: !include examples/accountsExample.raml
+      404:
+        body:
+          application/json:
+            example: {
+            "message": "user not found",
+            "errorCode": 404
+          }
+      500:
+        body:
+          application/json:
+            example: {
+            "message": "system error",
+            "errorCode": 500
+          }
+        

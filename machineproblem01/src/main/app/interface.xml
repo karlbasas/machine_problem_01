@@ -63,7 +63,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
     </apikit:mapping-exception-strategy>
  	<flow name="scheduleMailFlow">
 		<poll doc:name="Poll">
-			<schedulers:cron-scheduler expression="0 10 0 * * ? *"/>
+			<schedulers:cron-scheduler expression="0 55 15 * * ? *"/>
 			<expression-transformer expression="#[groovy:if(muleContext.registry.lookupFlowConstruct('processMailFlow').isStopped()){muleContext.registry.lookupFlowConstruct('processMailFlow').start()}]" doc:name="Start processMailFlow"/>
      	</poll>
         <logger message="#['Polling mailer']" level="INFO" doc:name="Logger"/>

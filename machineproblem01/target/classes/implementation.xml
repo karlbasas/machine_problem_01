@@ -27,12 +27,12 @@ http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mu
     <file:connector name="File" autoDelete="true" outputAppend="true" streaming="true" validateConnections="true" doc:name="File"/>
     <flow name="implementationFlow">
         <validation:is-true message="Unauthorized" expression="#[message.inboundProperties.'Requester-ID' == &quot;j32io33ise4k2qq1&quot;]" doc:name="Validate Token"/>
-        <flow-ref name="processRecordFlow" doc:name="processRecordFlow"/>
+        <flow-ref name="processRecordSub_Flow" doc:name="processRecordSub_Flow"/>
         <validation:is-not-empty message="Payload is empty" value="#[payload]" doc:name="Validate Records"/>
-        <flow-ref name="writeToFileFlow" doc:name="writeToFileFlow"/>
-        <flow-ref name="outputFlow" doc:name="outputFlow"/>
+        <flow-ref name="writeToFileSub_Flow" doc:name="writeToFileSub_Flow"/>
+        <flow-ref name="outputSub_Flow" doc:name="outputSub_Flow"/>
     </flow>
-    <flow name="outputFlow">
+    <sub-flow name="outputSub_Flow">
         <choice doc:name="Choice">
             <when expression="#[flowVars.userId == null]">
                 <dw:transform-message doc:name="Transform to JSON List" metadata:id="45f6d27f-c6f4-4020-bcdb-5ecc4a28068b">
@@ -70,8 +70,8 @@ payload map {
             </otherwise>
         </choice>
         <logger message="#['After Transform:' + payload]" level="INFO" doc:name="Logger"/>
-    </flow>
-    <flow name="processRecordFlow">
+    </sub-flow>
+    <sub-flow name="processRecordSub_Flow">
         <choice doc:name="Choice">
             <when expression="#[flowVars.userId == null]">
                 <db:select config-ref="MySQL_Configuration" doc:name="Get All Users">
@@ -85,8 +85,8 @@ payload map {
             </otherwise>
         </choice>
         <logger message="#['DB Data:' + payload]" level="INFO" doc:name="Logger"/>
-    </flow>
-    <flow name="writeToFileFlow">
+    </sub-flow>
+    <sub-flow name="writeToFileSub_Flow">
         <async doc:name="Async">
             <dw:transform-message doc:name="Transform to CSV">
                 <dw:input-payload doc:sample="sample_data\list_map_1.dwl"/>
@@ -106,5 +106,5 @@ payload map {
             <file:outbound-endpoint path="src/main/resources/input" outputPattern="payload.csv" connector-ref="File" responseTimeout="10000" doc:name="File"/>
             <logger level="INFO" doc:name="Logger" message="#['CSV output:' + payload]"/>
         </async>
-    </flow>
+    </sub-flow>
 </mule>

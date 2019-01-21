@@ -10,6 +10,7 @@ http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/moc
     <munit:config name="munit" doc:name="MUnit configuration" mock-connectors="false" mock-inbounds="false"/>
     <spring:beans>
         <spring:import resource="classpath:implementation.xml"/>
+        <spring:import resource="classpath:global.xml"/>
     </spring:beans>
     <munit:test name="getAllUsers-positiveTest" description="GetUsers returned records">
         <mock:when messageProcessor=".*:.*" doc:name="Mock">
@@ -34,11 +35,11 @@ http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/moc
             </mock:with-attributes>
             <mock:then-return payload="#[[]]" mimeType="*/*"/>
         </mock:when>
-        <flow-ref name="processRecordFlow" doc:name="Flow-ref to processRecordFlow"/>
+        <flow-ref name="processRecordSub_Flow" doc:name="Flow-ref to processRecordSub_Flow"/>
         <logger message="#[payload]" level="INFO" doc:name="Logger"/>
         <munit:assert-true message="Payload is not empty" condition="#[payload.size() == 0]" doc:name="Assert True"/>
     </munit:test>
-    <munit:test name="getAllUsers-databaseErrorTest" description="Database is unreachable" expectException="java.sql.SQLException">
+    <munit:test name="getAllUsers-databaseErrorTest" description="Database is unreachable" >
         <munit:set payload="#[]" doc:name="Set Message">
             <munit:inbound-properties>
                 <munit:inbound-property key="requester-id" value="#['j32io33ise4k2qq1']"/>
@@ -73,11 +74,11 @@ http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/moc
             <mock:then-return payload="#[[]]" mimeType="*/*"/>
         </mock:when>
         <set-variable variableName="userId" value="#['A1']" doc:name="Variable"/>
-        <flow-ref name="processRecordFlow" doc:name="Flow-ref to processRecordFlow"/>
+        <flow-ref name="processRecordSub_Flow" doc:name="Flow-ref to processRecordSub_Flow"/>
         <logger message="#[payload]" level="INFO" doc:name="Logger"/>
         <munit:assert-true message="Payload is not empty" condition="#[payload.size() == 0]" doc:name="Assert True"/>
     </munit:test>
-    <munit:test name="getuser-databaseErrorTest" description="Database is unreachable" expectException="java.sql.SQLException">
+    <munit:test name="getuser-databaseErrorTest" description="Database is unreachable" >
         <munit:set payload="#[]" doc:name="Set Message">
             <munit:inbound-properties>
                 <munit:inbound-property key="requester-id" value="#['j32io33ise4k2qq1']"/>
